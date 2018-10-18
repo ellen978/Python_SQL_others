@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sat Jun 16 13:17:51 2018
-
-@author: Yunsun2
 """
 
 #(1) 
