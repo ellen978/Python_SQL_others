@@ -1,0 +1,137 @@
+#618 Students Report By Geography
+##USE session variables and window-functions to create row number and pivot the table
+SELECT America, Asia, Europe 
+	
+from 
+	
+(select name as America, @a:=@a+1 as row1 from student, 
+		(select @a:=0) a1 where continent='America' order by America) a
+	
+left join 
+
+		(select name as Asia, @b:=@b+1 as row2 from student, (select @b:=0) b1 where continent='Asia' order by Asia) b 
+	
+on a.row1=b.row2
+
+	
+	left join 
+		
+(select name as Europe, @c:=@c+1 as row3 from student, (select @c:=0) c1 where continent='Europe' order by Europe) c 
+	
+on a.row1=c.row3
+
+
+#262: trips and users;
+##USE like operator;
+SELECT request_at as Day, 
+       
+                     round(sum(case when status like '%cancel%' then 1 else 0 end)/count(*), 2) as "Cancellation Rate"
+    
+	from trips 
+    
+        where request_at between '2013-10-01' and '2013-10-03' and 
+          
+              client_id in (select users_id from users where banned='No' and Role='client')
+    
+	group by 1
+   
+	order by 1
+
+
+#185: department top 3 salaries
+#USE subquery in where statement to subset; 
+SELECT b.name as Department, a.name as Employee, a.Salary
+
+	from employee a 
+
+	inner join 
+	
+department b 
+
+	on a.departmentid=b.id 
+	
+where 
+	    (select count(distinct b.salary) as num from Employee b where a.departmentid=b.departmentid and a.salary<=b.salary
+)<=3
+
+	order by b.name, a.Salary DESC
+
+
+579: Find Cumulative Salary of an Employee
+#Approach 1: use IFNULL function and multiple LEFT JOIN statements. 
+SELECT
+  E1.id,
+ E1.month,
+ (IFNULL(E1.salary, 0) + IFNULL(E2.salary, 0) + IFNULL(E3.salary, 0)) as salary
+	from
+    
+		(SELECT
+  id, MAX(month) as month
+   
+		from
+  Employee
+    GROUP BY id
+    HAVING COUNT(*) > 1) as maxmonth
+        
+		LEFT JOIN
+    
+		Employee E1 
+		ON (maxmonth.id = E1.id
+  AND maxmonth.month > E1.month)
+        
+		
+		LEFT JOIN
+    
+		Employee E2 
+		ON (E2.id = E1.id
+ AND E2.month = E1.month - 1)
+       
+
+		LEFT JOIN
+    
+		Employee E3 ON (E3.id = E1.id
+ AND E3.month = E1.month - 2)
+
+	ORDER BY id ASC , month DESC
+
+#Approach 2:use where (not join) as a short-cut
+SELECT  A.Id, MAX(B.Month) as Month, SUM(B.Salary) as Salary from     
+	Employee A, Employee B 
+
+	WHERE    A.Id = B.Id AND B.Month BETWEEN (A.Month-3) AND (A.Month-1)
+
+	GROUP BY A.Id, A.Month
+
+	ORDER BY Id, Month DESC
+
+#615: Average Salary: Departments VS Company
+#USE multi-layer subqueries 
+select c.pay_month, department_id, 
+(case when c.dept_avg>d.avg then 'higher'
+   
+					 when c.dept_avg=d.avg then 'same'
+     
+					 when c.dept_avg<d.avg then 'lower'
+ 
+			            else NULL end) as comparison
+
+from 
+	
+(select date_format(pay_date, '%Y-%m') as pay_month, b.department_id, avg(a.amount) as dept_avg
+	
+from salary a 
+
+	left join 
+	
+employee b
+	
+on a.employee_id=b.employee_id
+
+	group by pay_month, department_id) c 
+
+
+	left join 
+	
+(select date_format(pay_date, '%Y-%m') as pay_month, avg(amount) as avg from salary group by pay_month) d
+	
+on c.pay_month=d.pay_month 
